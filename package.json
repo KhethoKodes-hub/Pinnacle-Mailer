@@ -7,7 +7,7 @@
     "dev:app": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "nx dev frontend --port=4200",
     "dev:backend": "nx serve backend",
-    "build": "echo \"Use npm run build:all for workspace builds\"",
+    "build": "nx build frontend",
     "build:all": "nx nrun-many -t build --exclude pinnacle-mailer",
     "lint": "nx run-many -t lint",
     "db:generate": "prisma generate --schema apps/backend/prisma/schema.prisma",
