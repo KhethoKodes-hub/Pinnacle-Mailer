@@ -1,6 +1,6 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { getBackendApiBaseUrl } from './env';
+import { getAuthSecret, tryGetBackendApiBaseUrl } from './env';
 
 type BackendLoginResponse = {
   accessToken: string;
@@ -47,7 +47,15 @@ async function refreshAccessToken(token: {
   }
 
   try {
-    const response = await fetch(`${getBackendApiBaseUrl()}/api/auth/refresh`, {
+    const backendApiBaseUrl = tryGetBackendApiBaseUrl();
+    if (!backendApiBaseUrl) {
+      return {
+        ...token,
+        error: 'BackendUnavailable',
+      };
+    }
+
+    const response = await fetch(`${backendApiBaseUrl}/api/auth/refresh`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -83,6 +91,7 @@ async function refreshAccessToken(token: {
 }
 
 export const authOptions: NextAuthOptions = {
+  secret: getAuthSecret(),
   pages: {
     signIn: '/login',
   },
@@ -97,6 +106,11 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        const backendApiBaseUrl = tryGetBackendApiBaseUrl();
+        if (!backendApiBaseUrl) {
+          throw new Error('Authentication backend is not configured.');
+        }
+
         const email = typeof credentials?.email === 'string' ? credentials.email.trim() : '';
         const password = typeof credentials?.password === 'string' ? credentials.password : '';
 
@@ -104,7 +118,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const response = await fetch(`${getBackendApiBaseUrl()}/api/auth/login`, {
+        const response = await fetch(`${backendApiBaseUrl}/api/auth/login`, {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
