@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum TemplateStatus {
+  draft
+  published
+}
+
+enum LayoutType {
+  header
+  footer
+}
+
+enum MediaStatus {
+  active
+  archived
+}
+
+enum AuditEntity {
+  template
+  layout
+  media
+  api_client
+  auth_session
+}
+
+enum AuditAction {
+  create
+  update
+  publish
+  rollback
+  delete
+  revoke
+  rotate_secret
+  login
+  login_failed
+  refresh
+  logout
+  refresh_reuse
+  lockout
+}
+
+model ApiClient {
+  id               String    @id @default(cuid())
+  name             String
+  clientId         String    @unique
+  clientSecretHash String
+  scopesJson       String
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  rotatedAt        DateTime?
+  revokedAt        DateTime?
+  auditLogs        AuditLog[]
+
+  @@index([isActive, revokedAt])
+}
+
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  displayName  String
+  passwordHash String
+  failedLoginAttempts Int   @default(0)
+  lockedUntil   DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  templates    EmailTemplate[] @relation("TemplateUpdatedBy")
+  layouts      EmailLayout[]   @relation("LayoutUpdatedBy")
+  mediaAssets  MediaAsset[]    @relation("MediaUpdatedBy")
+  templateVersions TemplateVersion[]
+  auditLogs    AuditLog[]
+  refreshSessions UserRefreshSession[]
+}
+
+model UserRefreshSession {
+  id                String   @id @default(cuid())
+  userId            String
+  tokenHash         String
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  replacedByTokenId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, expiresAt])
+  @@index([revokedAt])
+}
+
+model EmailLayout {
+  id            String      @id @default(cuid())
+  name          String
+  type          LayoutType
+  mjml          String
+  layoutJson    String      @default("{}")
+  version       Int         @default(1)
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  lastUpdatedById String?
+  lastUpdatedBy User?       @relation("LayoutUpdatedBy", fields: [lastUpdatedById], references: [id])
+  deletedAt     DateTime?
+  templatesAsHeader EmailTemplate[] @relation("HeaderLayout")
+  templatesAsFooter EmailTemplate[] @relation("FooterLayout")
+
+  @@index([type, isActive])
+}
+
+model EmailTemplate {
+  id              String         @id @default(cuid())
+  name            String
+  slug            String         @unique
+  subject         String
+  bodyMjml        String
+  blocksJson      String
+  status          TemplateStatus @default(draft)
+  headerLayoutId  String
+  footerLayoutId  String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  lastUpdatedById String?
+  lastUpdatedBy   User?          @relation("TemplateUpdatedBy", fields: [lastUpdatedById], references: [id])
+  deletedAt       DateTime?
+
+  headerLayout    EmailLayout    @relation("HeaderLayout", fields: [headerLayoutId], references: [id])
+  footerLayout    EmailLayout    @relation("FooterLayout", fields: [footerLayoutId], references: [id])
+  versions        TemplateVersion[]
+  mediaUsage      MediaUsage[]
+
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model TemplateVersion {
+  id            String   @id @default(cuid())
+  templateId    String
+  version       Int
+  subject       String
+  bodyMjml      String
+  blocksJson    String
+  createdAt     DateTime @default(now())
+  createdById   String?
+
+  template      EmailTemplate @relation(fields: [templateId], references: [id])
+  createdBy     User?         @relation(fields: [createdById], references: [id])
+
+  @@unique([templateId, version])
+  @@index([templateId, createdAt])
+}
+
+model MediaAsset {
+  id             String      @id @default(cuid())
+  filename       String
+  originalName   String
+  mimeType       String
+  sizeBytes      Int
+  width          Int?
+  height         Int?
+  altText        String?
+  caption        String?
+  storagePath    String
+  status         MediaStatus  @default(active)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  lastUpdatedById String?
+  lastUpdatedBy  User?        @relation("MediaUpdatedBy", fields: [lastUpdatedById], references: [id])
+  deletedAt      DateTime?
+  usage          MediaUsage[]
+
+  @@index([status, deletedAt])
+}
+
+model MediaUsage {
+  id         String   @id @default(cuid())
+  templateId String
+  assetId    String
+  createdAt  DateTime @default(now())
+
+  template   EmailTemplate @relation(fields: [templateId], references: [id])
+  asset      MediaAsset    @relation(fields: [assetId], references: [id])
+
+  @@unique([templateId, assetId])
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  entity      AuditEntity
+  entityId    String
+  action      AuditAction
+  actorUserId String?
+  actorClientId String?
+  beforeJson  String?
+  afterJson   String?
+  requestId   String?
+  createdAt   DateTime    @default(now())
+
+  actor       User?       @relation(fields: [actorUserId], references: [id])
+  actorClient ApiClient?  @relation(fields: [actorClientId], references: [id])
+
+  @@index([entity, entityId, createdAt])
+}

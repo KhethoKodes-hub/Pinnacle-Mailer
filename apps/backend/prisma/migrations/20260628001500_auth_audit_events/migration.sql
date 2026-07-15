@@ -1,0 +1,4 @@
+-- SQLite stores Prisma enums as TEXT in this schema; no table rewrite required.
+-- This migration tracks enum expansion for auth session audit events:
+-- AuditEntity: +auth_session
+-- AuditAction: +login, +refresh, +logout, +refresh_reuse
