@@ -1,0 +1,13 @@
+POST git-receive-pack (chunked)
+remote: warning: File apps/frontend/.next/dev/cache/turbopack/93c3993a/00000432.sst is 53.58 MB; this is larger than GitHub's recommended maximum file size of 50.00 MB        
+remote: warning: File apps/frontend/.next/dev/cache/turbopack/93c3993a/00000433.sst is 59.78 MB; this is larger than GitHub's recommended maximum file size of 50.00 MB        
+remote: warning: File apps/frontend/.next/dev/cache/turbopack/dc98c04f/00001226.sst is 53.40 MB; this is larger than GitHub's recommended maximum file size of 50.00 MB        
+remote: warning: File apps/frontend/.next/dev/cache/turbopack/dc98c04f/00001227.sst is 59.23 MB; this is larger than GitHub's recommended maximum file size of 50.00 MB        
+remote: error: Trace: fd8ae3f4b1ed81eadedf973f3e1200b9ad8f50002d9f47d0e167cdb6a5aad0aa        
+remote: error: See https://gh.io/lfs for more information.        
+remote: error: File node_modules/@next/swc-win32-x64-msvc/next-swc.win32-x64-msvc.node is 122.06 MB; this exceeds GitHub's file size limit of 100.00 MB        
+remote: error: GH001: Large files detected. You may want to try Git Large File Storage - https://git-lfs.github.com.        
+Pushing to https://github.com/KhethoKodes-hub/PinnacleRewards-Mailer.git
+To https://github.com/KhethoKodes-hub/PinnacleRewards-Mailer.git
+ ! [remote rejected]   main -> main (pre-receive hook declined)
+error: failed to push some refs to 'https://github.com/KhethoKodes-hub/PinnacleRewards-Mailer.git'
