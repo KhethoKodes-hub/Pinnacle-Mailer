@@ -25,11 +25,41 @@ The resulting architecture emphasizes controlled change workflows, secure trust 
 
 ## Stack
 
-- Monorepo: Nx
-- Frontend: Next.js
-- Backend: NestJS
-- Persistence: Prisma + SQLite
-- Shared rendering: `libs/shared-renderer`
+- Monorepo: Nx (organizes multiple apps/libs in one repo with shared tooling and build workflows)
+- Frontend: Next.js (the web UI layer for admin/editor experiences and browser-facing routes)
+- Backend: NestJS (the server API layer that handles business logic, auth, and protected operations)
+- Persistence: Prisma + SQLite (database access layer plus a local relational database for stored app data)
+- Shared rendering: `libs/shared-renderer` (reusable rendering logic that composes consistent email output across templates)
+
+## Architecture Diagram
+
+```mermaid
+flowchart LR
+	U[Editor/Admin User]
+	F[Next.js Frontend\napps/frontend]
+	BFF[BFF Routes\napps/frontend/src/app/api/bff]
+	A[NestJS Backend API\napps/backend]
+	G[AccessTokenGuard + Scopes]
+	R[Shared Renderer\nlibs/shared-renderer]
+	T[Shared Types\nlibs/shared-types]
+	P[Prisma]
+	D[(SQLite DB)]
+	S[(storage/uploads)]
+	L[Audit Logs + Template Versions]
+
+	U --> F
+	F --> BFF
+	BFF -->|Bearer token + x-request-id| A
+	A --> G
+	A --> R
+	F --> T
+	A --> T
+	A --> P --> D
+	A --> S
+	A --> L
+```
+
+This architecture enforces a strict trust boundary: browser requests pass through the BFF, and protected business operations execute in the backend behind scope checks.
 
 ## Core Flow
 
@@ -37,14 +67,23 @@ The resulting architecture emphasizes controlled change workflows, secure trust 
 2. Preview composes `header + body + footer` using shared renderer.
 3. Save/publish calls backend validation and persistence.
 4. Any shared layout update can be impact-assessed across templates.
+5. Roadmap: migrate from SQLite to PostgreSQL for enterprise-scale concurrency and performance.
+6. Roadmap: continue frontend UI/UX and reliability hardening for larger operator teams.
 
-## Why this scales to 45+ templates
+## Why this scales well beyond 45 templates
 
-- Shared layouts avoid duplicated edits.
-- Templates are versioned for rollback safety.
-- Audit logs track all key mutations.
-- Media assets are reusable and centrally managed.
-- BFF-mediated auth boundaries reduce credential leakage risk while retaining per-user attribution.
+- Shared layouts avoid duplicated edits (one layout change can propagate safely across many templates).
+- Templates are versioned for rollback safety (teams can publish fast and recover quickly if needed).
+- Audit logs track all key mutations (every critical change has traceability for governance and incident response).
+- Media assets are reusable and centrally managed (assets are uploaded once and reused across campaigns).
+- BFF-mediated auth boundaries reduce credential leakage risk while retaining per-user attribution (secure browser-to-API workflows at scale).
+- 45 templates is only an early milestone (the model supports much larger growth, especially with the planned move from SQLite to PostgreSQL for enterprise-scale performance and concurrency).
+
+## Near-Term Evolution
+
+- Database evolution: move to PostgreSQL to improve concurrent writes, operational tooling, and long-term data growth characteristics.
+- Storage evolution: keep current local upload flow while preserving the abstraction to move media to object storage later without rewriting editor workflows.
+- Product evolution: improve editing ergonomics, validation feedback, and resilience for day-to-day content operations.
 
 ## Assessment Outcomes
 
